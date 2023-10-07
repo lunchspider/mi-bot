@@ -1,0 +1,21 @@
+{
+  "name": "mi-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type" : "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "google-auth-library": "^9.1.0",
+    "google-spreadsheet": "^4.1.0",
+    "inquirer": "^9.2.11",
+    "puppeteer": "^21.3.8",
+    "typescript": "^5.2.2"
+  }
+}
