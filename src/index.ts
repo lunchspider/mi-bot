@@ -174,7 +174,7 @@ async function main() {
             continue;
         }
         record.set('ATTEMPTED', 'Y');
-        const browser = await puppeteer.launch({ headless: false, executablePath: '/opt/brave.com/brave/brave', args: ['--disable-notifications'] });
+        const browser = await puppeteer.launch({ headless: false, args: ['--disable-notifications'] });
         const page = await browser.newPage();
         try {
             await order(page, record);
