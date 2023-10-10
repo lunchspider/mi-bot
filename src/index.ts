@@ -33,12 +33,16 @@ async function fillAddressInfo(page: Page, record: GoogleSpreadsheetRow) {
 }
 
 async function fillCardInfo(page: Page, record: GoogleSpreadsheetRow) {
+    await page.waitForSelector('#jusPayIframe > iframe', { visible: true });
+    await new Promise((r) => setTimeout(r, 4000));
     const elementHanlde = await page.$('#jusPayIframe > iframe');
     const frame = await elementHanlde?.contentFrame()!;
     await frame.type('input[placeholder = "Enter Card Number"]', record.get('CARD'));
     await frame.type('input[placeholder = "MM/YY"]', record.get('EXP'));
     await frame.type('input[placeholder = "CVV"]', record.get('CVV'));
-    await frame.click('div[testid = "btn_pay"] > div');
+    await new Promise((r) => setTimeout(r, 1000));
+    await frame.click('div[testid = "btn_pay"] > div article');
+    await new Promise((r) => setTimeout(r, 1000));
     await frame.evaluate(() => {
         let el = document.querySelector('div[testid = "pop_tokenization"] div div:nth-child(2) div div:nth-child(3) div div:nth-child(2)');
         if (el) {
@@ -46,6 +50,7 @@ async function fillCardInfo(page: Page, record: GoogleSpreadsheetRow) {
             el.click();
         }
     });
+    await page.waitForNavigation();
 }
 
 async function clearCart(page: Page) {
@@ -62,13 +67,48 @@ async function clearCart(page: Page) {
     }
 }
 
+async function fillGstInfo(page: Page, record: GoogleSpreadsheetRow) {
+    await page.waitForSelector('.invoice-check-text', { visible: true });
+    await page.click('.invoice-check-text');
+    let isBillingAddress = await page.evaluate(() => {
+        return !!document.querySelector('div.checkout-invoice__invoice span[role = "button"]');
+    });
+    console.log(isBillingAddress);
+    if (isBillingAddress) {
+        await page.click('div.checkout-invoice__invoice span[role = "button"]');
+    }
+    await page.waitForSelector('div[aria-label = "Modal"]');
+    const data = {
+        name: record.get("NAME"),
+        pincode: record.get("PINCODE"),
+        phone: record.get("PHONE"),
+        address: record.get("ADDRESS"),
+        email: record.get("EMAIL"),
+    };
+    await page.evaluate((data) => {
+        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "30"]')!.value = data.name;
+        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "6"]')!.value = data.pincode;
+    }, data)
+    await new Promise((r) => setTimeout(r, 3000));
+
+    await page.evaluate((data) => {
+        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "10"]')!.value = data.phone;
+        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "150"]')!.value = data.address;
+        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "50"]')!.value = data.email;
+    }, data);
+    await page.click('div[aria-label = "Modal"] footer button');
+    await page.waitForSelector('div.gstin-code input');
+    let gst = record.get('GST') as string;
+    gst = gst.substring(2);
+    await page.type('div.gstin-code input', gst);
+    await new Promise((r) => setTimeout(r, 3000));
+}
+
 
 async function order(page: Page, record: GoogleSpreadsheetRow) {
     await login(page, record);
     await clearCart(page);
     await page.goto(record.get("LINK"));
-    await page.waitForSelector("#nav-buy_now");
-    await page.click("#nav-buy_now");
     await page.waitForSelector('div[class = "information-section__product-price"] > strong');
     let price = await page.evaluate(() => {
         return parseInt(document
@@ -104,8 +144,6 @@ async function order(page: Page, record: GoogleSpreadsheetRow) {
     if (error) {
         throw error;
     }
-    await page.click('button[aria-label="Buy Now"]');
-    await page.waitForNavigation();
     await page.waitForSelector('button[aria-label = "Check Out"]');
     await page.click('button[aria-label = "Check Out"]');
     await new Promise((r) => setTimeout(r, 3000));
@@ -119,6 +157,7 @@ async function order(page: Page, record: GoogleSpreadsheetRow) {
         await page.click('div[aria-label="Modal"] > footer > button:nth-child(2)');
     }
     await fillAddressInfo(page, record);
+    await fillGstInfo(page, record);
     await page.waitForSelector('.juspay-prompt-content', { visible: true });
     await page.click('.order-summary > div > button');
     await fillCardInfo(page, record);
@@ -129,10 +168,14 @@ async function main() {
     const records = await spreadSheet.sheetsByIndex[0].getRows()
     console.log(records);
 
-    const browser = await puppeteer.launch({ headless: false, executablePath: '/opt/brave.com/brave/brave', args: ['--disable-notifications'] });
-    const page = await browser.newPage();
     for (let i = 0; i < records.length; i++) {
         const record = records[i];
+        if (record.get('ATTEMPTED') === 'Y') {
+            continue;
+        }
+        record.set('ATTEMPTED', 'Y');
+        const browser = await puppeteer.launch({ headless: false, executablePath: '/opt/brave.com/brave/brave', args: ['--disable-notifications'] });
+        const page = await browser.newPage();
         try {
             await order(page, record);
         } catch (e: any) {
@@ -140,8 +183,8 @@ async function main() {
             record.set('ERROR', e.toString());
         }
         await record.save();
+        await browser.close();
     }
-    await browser.close();
 }
 
 main();
