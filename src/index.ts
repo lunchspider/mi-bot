@@ -85,17 +85,20 @@ async function fillGstInfo(page: Page, record: GoogleSpreadsheetRow) {
         address: record.get("ADDRESS"),
         email: record.get("EMAIL"),
     };
-    await page.evaluate((data) => {
-        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "30"]')!.value = data.name;
-        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "6"]')!.value = data.pincode;
-    }, data)
+    await page.evaluate(() => {
+        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "30"]')!.value = '';
+        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "6"]')!.value = '';
+        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "10"]')!.value = '';
+        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "150"]')!.value = '';
+        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "50"]')!.value = '';
+    })
+    await page.type('div[aria-label = "Modal"] main input[maxlength = "30"]', data.name);
+    await page.type('div[aria-label = "Modal"] main input[maxlength = "6"]', data.pincode);
     await new Promise((r) => setTimeout(r, 3000));
+    await page.type('div[aria-label = "Modal"] main input[maxlength = "10"]', data.phone);
+    await page.type('div[aria-label = "Modal"] main input[maxlength = "150"]', data.address);
+    await page.type('div[aria-label = "Modal"] main input[maxlength = "50"]', data.email);
 
-    await page.evaluate((data) => {
-        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "10"]')!.value = data.phone;
-        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "150"]')!.value = data.address;
-        document.querySelector<HTMLInputElement>('div[aria-label = "Modal"] main input[maxlength = "50"]')!.value = data.email;
-    }, data);
     await page.click('div[aria-label = "Modal"] footer button');
     await page.waitForSelector('div.gstin-code input');
     let gst = record.get('GST') as string;
@@ -132,8 +135,8 @@ async function order(page: Page, record: GoogleSpreadsheetRow) {
         throw 'item not in stock!';
     }
     await page.waitForSelector('button[aria-label="Buy Now"]', { visible: true });
+    await new Promise((r) => setTimeout(r, 1000));
     await page.click('button[aria-label="Buy Now"]');
-    await new Promise((r) => setTimeout(r, 5000));
     let error = await page.evaluate(() => {
         let element = document.querySelector('div[aria-label = "AlertModal"] > main > span');
         if (element) {
@@ -160,6 +163,17 @@ async function order(page: Page, record: GoogleSpreadsheetRow) {
     await fillGstInfo(page, record);
     await page.waitForSelector('.juspay-prompt-content', { visible: true });
     await page.click('.order-summary > div > button');
+    await new Promise((r) => setTimeout(r, 1000));
+    error = await page.evaluate(() => {
+        let element = document.querySelector('div[aria-label = "Modal"] > main ');
+        if (element) {
+            return element.innerHTML;
+        }
+    });
+    console.log({ error });
+    if (error) {
+        throw error;
+    }
     await fillCardInfo(page, record);
 }
 
@@ -174,7 +188,7 @@ async function main() {
             continue;
         }
         record.set('ATTEMPTED', 'Y');
-        const browser = await puppeteer.launch({ headless: false, args: ['--disable-notifications'] });
+        const browser = await puppeteer.launch({ headless: false, args: ['--disable-notifications'], defaultViewport: null });
         const page = await browser.newPage();
         try {
             await order(page, record);
