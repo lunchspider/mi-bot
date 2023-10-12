@@ -107,6 +107,18 @@ async function fillGstInfo(page: Page, record: GoogleSpreadsheetRow) {
     await new Promise((r) => setTimeout(r, 3000));
 }
 
+async function handleOrderInfo(page: Page, record: GoogleSpreadsheetRow) {
+    await page.waitForSelector('.payment-successful', { visible: true });
+    await new Promise((r) => setTimeout(r, 1000));
+    let title = await page.evaluate(() => {
+        return document.querySelector('.payment-successful__title')?.innerHTML;
+    }) ?? '';
+    if (title === '' || title.includes('failed')) {
+        throw 'payment failed!';
+    }
+    await wait();
+}
+
 
 async function order(page: Page, record: GoogleSpreadsheetRow) {
     await login(page, record);
@@ -175,6 +187,7 @@ async function order(page: Page, record: GoogleSpreadsheetRow) {
         throw error;
     }
     await fillCardInfo(page, record);
+    await handleOrderInfo(page, record);
 }
 
 async function main() {
