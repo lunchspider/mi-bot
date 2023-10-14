@@ -34,6 +34,15 @@ async function fillAddressInfo(page: Page, record: GoogleSpreadsheetRow) {
 
 async function fillCardInfo(page: Page, record: GoogleSpreadsheetRow) {
     await page.waitForSelector('#jusPayIframe > iframe', { visible: true });
+    let finalPrice = await page.evaluate(() => {
+        return parseInt(document
+            .querySelector('.card-order-detail > table > tbody > tr:nth-child(3) > td:nth-child(2)')?.innerHTML
+            .split('₹')[1]
+            .replace(',', '') ?? '');
+    });
+    if (parseInt(record.get("FINAL PRICE")) < finalPrice) {
+        throw 'product final price is higher than value';
+    }
     await new Promise((r) => setTimeout(r, 4000));
     const elementHanlde = await page.$('#jusPayIframe > iframe');
     const frame = await elementHanlde?.contentFrame()!;
@@ -128,7 +137,7 @@ async function handleOrderInfo(page: Page, record: GoogleSpreadsheetRow) {
     let info = await page.evaluate(() => {
         return {
             title: document.querySelector('.payment-successful__title')?.innerHTML ?? '',
-            orderNumber: document.querySelector('.payment-successful__info > p:nth-child(4)')?.innerHTML.split(' ')[2] ?? '',
+            orderNumber: `OD${document.querySelector('.payment-successful__info > p:nth-child(4)')?.innerHTML.split(' ')[2] ?? ''}`,
             price: document.querySelector('.payment-successful__info > p:nth-child(3)')?.innerHTML.split('₹')[1].replace(',', ''),
         };
     });
@@ -158,6 +167,13 @@ async function order(page: Page, record: GoogleSpreadsheetRow) {
     if (parseInt(record.get('MAX PRICE')) < price) {
         throw 'max price is is less than the item price : ' + price;
     }
+    const name = await page.evaluate(() => {
+        let name = document.querySelector('.information-section__product-title > span')?.innerHTML ?? '';
+        let info = document.querySelector('.information-section__product-info > div')?.innerHTML ?? '';
+        return name + ' ' + info;
+    });
+    console.log(name);
+    record.set('ITEM NAME', name ?? '');
     let inStock = await page.evaluate(() => {
         let element = document.querySelector('button[aria-label = "Notify Me"]');
         if (element) {
@@ -229,6 +245,7 @@ async function main() {
             await order(page, record);
         } catch (e: any) {
             console.log(e);
+            record.set('ITEM NAME', '');
             record.set('ERROR', e.toString());
         }
         await record.save();
