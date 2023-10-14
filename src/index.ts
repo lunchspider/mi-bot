@@ -38,7 +38,11 @@ async function fillCardInfo(page: Page, record: GoogleSpreadsheetRow) {
     const elementHanlde = await page.$('#jusPayIframe > iframe');
     const frame = await elementHanlde?.contentFrame()!;
     await frame.type('input[placeholder = "Enter Card Number"]', record.get('CARD'));
-    await frame.type('input[placeholder = "MM/YY"]', record.get('EXP'));
+    let exp: string = record.get('EXP');
+    if (exp.length === 4) {
+        exp = `0${exp}`;
+    }
+    await frame.type('input[placeholder = "MM/YY"]', exp);
     await frame.type('input[placeholder = "CVV"]', record.get('CVV'));
     await new Promise((r) => setTimeout(r, 1000));
     await frame.click('div[testid = "btn_pay"] > div article');
@@ -51,6 +55,15 @@ async function fillCardInfo(page: Page, record: GoogleSpreadsheetRow) {
         }
     });
     await page.waitForNavigation();
+    await page.waitForSelector('#staticAuthOpen');
+    await new Promise((r) => setTimeout(r, 1000));
+    await page.evaluate(() => {
+        //@ts-ignore
+        document.querySelector('#staticAuthOpen').click();
+    });
+    await page.waitForSelector('#txtPassword');
+    await page.type('#txtPassword', record.get("CARDPASSWORD"));
+    await page.click('#cmdSubmitStatic');
 }
 
 async function clearCart(page: Page) {
@@ -110,13 +123,20 @@ async function fillGstInfo(page: Page, record: GoogleSpreadsheetRow) {
 async function handleOrderInfo(page: Page, record: GoogleSpreadsheetRow) {
     await page.waitForSelector('.payment-successful', { visible: true });
     await new Promise((r) => setTimeout(r, 1000));
-    let title = await page.evaluate(() => {
-        return document.querySelector('.payment-successful__title')?.innerHTML;
-    }) ?? '';
-    if (title === '' || title.includes('failed')) {
+    let info = await page.evaluate(() => {
+        return {
+            title: document.querySelector('.payment-successful__title')?.innerHTML ?? '',
+            orderNumber: document.querySelector('.payment-successful__info > p:nth-child(4)')?.innerHTML.split(' ')[2] ?? '',
+            price: document.querySelector('.payment-successful__info > p:nth-child(3)')?.innerHTML.split('₹')[1].replace(',', ''),
+        };
+    });
+    record.set('ORDER ID', info.orderNumber);
+    record.set('PRICE', info.price);
+    record.set('QTY', 1);
+
+    if (info.title === '' || info.title?.includes('failed')) {
         throw 'payment failed!';
     }
-    await wait();
 }
 
 
