@@ -38,10 +38,12 @@ async function fillCardInfo(page: Page, record: GoogleSpreadsheetRow) {
     const elementHanlde = await page.$('#jusPayIframe > iframe');
     const frame = await elementHanlde?.contentFrame()!;
     await frame.type('input[placeholder = "Enter Card Number"]', record.get('CARD'));
-    let exp: string = record.get('EXP');
-    if (exp.length === 4) {
-        exp = `0${exp}`;
+    let expMonth: string = record.get('EXP MONTH');
+    let expYear: string = record.get('EXP YEAR');
+    if (expMonth.length == 1) {
+        expMonth = `0${expMonth}`;
     }
+    let exp: string = `${expMonth}/${expYear}`;
     await frame.type('input[placeholder = "MM/YY"]', exp);
     await frame.type('input[placeholder = "CVV"]', record.get('CVV'));
     await new Promise((r) => setTimeout(r, 1000));
