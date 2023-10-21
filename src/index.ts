@@ -184,6 +184,19 @@ async function order(page: Page, record: GoogleSpreadsheetRow) {
     if (inStock) {
         throw 'item not in stock!';
     }
+    await new Promise((r) => setTimeout(r, 2000));
+    const elementHandle = await page.$('iframe');
+    if (elementHandle) {
+        await page.evaluate(() => {
+            let iframe = document.querySelector('iframe');
+            if (iframe && iframe.contentDocument) {
+                let button = iframe.contentDocument.querySelector('button');
+                if (button) {
+                    button.click();
+                }
+            }
+        });
+    }
     await page.waitForSelector('button[aria-label="Buy Now"]', { visible: true });
     await new Promise((r) => setTimeout(r, 1000));
     await page.click('button[aria-label="Buy Now"]');
