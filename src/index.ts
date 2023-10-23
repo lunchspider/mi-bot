@@ -15,10 +15,15 @@ async function wait() {
 async function login(page: Page, record: GoogleSpreadsheetRow) {
     await page.goto('https://store.mi.com/in/site/login');
     await page.waitForSelector('input[name = "account"]', { visible: true });
-    await page.type('input[name = "account"]', record.get('EMAIL'));
+    await page.type('input[name = "account"]', record.get('USERNAME'));
     await page.type('input[type = "password"]', record.get('PASSWORD'));
     await page.click('button[type = "submit"]');
     await page.waitForNavigation();
+    if (page.url().includes('account')) {
+        await page.waitForSelector('.mi-layout__container span', { visible: true });
+        await page.click('.mi-layout__container span');
+        await page.waitForNavigation();
+    }
 }
 
 async function fillAddressInfo(page: Page, record: GoogleSpreadsheetRow) {
@@ -101,7 +106,7 @@ async function fillGstInfo(page: Page, record: GoogleSpreadsheetRow) {
     if (isBillingAddress) {
         await page.click('div.checkout-invoice__invoice span[role = "button"]');
     }
-    await page.waitForSelector('div[aria-label = "Modal"]');
+    await page.waitForSelector('div[aria-label = "Modal"]', { visible: true });
     const data = {
         name: record.get("NAME"),
         pincode: record.get("PINCODE"),
@@ -124,7 +129,7 @@ async function fillGstInfo(page: Page, record: GoogleSpreadsheetRow) {
     await page.type('div[aria-label = "Modal"] main input[maxlength = "50"]', data.email);
 
     await page.click('div[aria-label = "Modal"] footer button');
-    await page.waitForSelector('div.gstin-code input');
+    await page.waitForSelector('div.gstin-code input', { visible: true });
     let gst = record.get('GST') as string;
     gst = gst.substring(2);
     await page.type('div.gstin-code input', gst);
