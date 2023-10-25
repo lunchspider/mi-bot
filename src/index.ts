@@ -207,8 +207,15 @@ async function order(page: Page, record: GoogleSpreadsheetRow) {
         });
     }
     await page.waitForSelector('button[aria-label="Buy Now"]', { visible: true });
-    await new Promise((r) => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 2000));
     await page.click('button[aria-label="Buy Now"]');
+    await new Promise((r) => setTimeout(r, 1000));
+    await page.evaluate(() => {
+        let el = document.querySelector<HTMLButtonElement>('button[aria-label="Buy Now"]');
+        if (el) {
+            el.click();
+        }
+    });
     let error = await page.evaluate(() => {
         let element = document.querySelector('div[aria-label = "AlertModal"] > main > span');
         if (element) {
