@@ -71,7 +71,11 @@ async function fillCardInfo(page: Page, record: GoogleSpreadsheetRow) {
         }
     });
     await page.waitForNavigation();
-    await page.waitForSelector('#staticAuthOpen');
+    try {
+        await page.waitForSelector('#staticAuthOpen');
+    } catch (e: any) {
+        return;
+    }
     await new Promise((r) => setTimeout(r, 1000));
     await page.evaluate(() => {
         //@ts-ignore
