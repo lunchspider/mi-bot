@@ -24,7 +24,7 @@ export async function getInfo(
     const orders = await page.$$('.order-list > section > li');
 
     let result = [];
-    const email = record.get('EMAIL') ?? '';
+    const username = record.get('USERNAME') ?? '';
 
     for (const order of orders) {
         let time = await order.$eval('.info-left_time', x => x.textContent)
@@ -45,7 +45,7 @@ export async function getInfo(
         const price = (await order.$eval('strong', x => x.textContent))!
             .replace('₹', '')
             .replace(',', '');
-        result.push({ status, id, name, qty, price, email });
+        result.push({ status, id, name, qty, price, username });
     }
     record.set('ORDER FETCHED', result.length ?? 0);
     const invoiceDirPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "../../invoice");
