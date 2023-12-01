@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "commander": "^11.1.0",
     "google-auth-library": "^9.1.0",
     "google-spreadsheet": "^4.1.0",
     "inquirer": "^9.2.11",
