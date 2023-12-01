@@ -24,7 +24,7 @@ export async function getInfo(
     const orders = await page.$$('.order-list > section > li');
 
     let result = [];
-    const email = record.get('email') ?? '';
+    const email = record.get('EMAIL') ?? '';
 
     for (const order of orders) {
         let time = await order.$eval('.info-left_time', x => x.textContent)
