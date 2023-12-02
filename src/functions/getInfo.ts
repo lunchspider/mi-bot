@@ -28,7 +28,7 @@ export async function getInfo(
     while (true) {
         await page.waitForSelector('.order-list > section > li', { visible: true });
         const orders = await page.$$('.order-list > section > li');
-        const username = record.get('USERNAME') ?? '';
+        const username: string = record.get('USERNAME') ?? '';
         for (const order of orders) {
             let time = await order.$eval('.info-left_time', x => x.textContent)
                 .then((t) => {
@@ -51,7 +51,7 @@ export async function getInfo(
             const price = (await order.$eval('strong', x => x.textContent))!
                 .replace('₹', '')
                 .replace(',', '');
-            result.push({ status, id, name, qty, price, username, orderDate });
+            result.push({ status, id, name, qty, price, username, orderDate, recheck: false });
         }
         if (shouldBreak) {
             break;
@@ -75,8 +75,17 @@ export async function getInfo(
     for (let order of result) {
         let url = `https://store.mi.com/in/user/orderview/${order.id}`;
         await page.goto(url);
+        if (order.status.toLowerCase().includes('refunded')) {
+            continue;
+        }
+        if (order.status.toLowerCase().includes('closed')) {
+            continue;
+        }
+        if (order.status.toLowerCase().includes('cancelled')) {
+            continue;
+        }
         try {
-            await page.waitForSelector('.package-detail__delivery-info', { visible: true });
+            await page.waitForSelector('.deliver-status-title', { visible: true });
             const data = await page.evaluate(() => {
                 let trackingId = document.querySelector('.package-detail__delivery-info > section > div > span:nth-child(2)')!.textContent;
                 const courier = document.querySelector('.package-detail__delivery-info > section > div:nth-child(2) > span:nth-child(2)')!.textContent;
@@ -103,6 +112,11 @@ export async function getInfo(
             results.push(order);
         } catch (e: any) {
             console.log('duplicate order possibly detected! for account:  ', order.username, 'for order id : ', order.id);
+            order.recheck = true;
+            if (!order.id.includes('OD')) {
+                order.id = `OD${order.id}`;
+            }
+            results.push(order);
         }
     }
     console.log('account processed!');
