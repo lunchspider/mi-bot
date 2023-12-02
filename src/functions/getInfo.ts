@@ -11,23 +11,24 @@ export async function getInfo(
     record: GoogleSpreadsheetRow,
     results: Array<any>,
     numberOfDays: number) {
+    let tillDate = new Date();
+    tillDate.setDate(tillDate.getDate() - numberOfDays);
+
+
     await login(page, record);
     await page.goto('https://store.mi.com/in/user/order');
 
     await page.waitForSelector('.user-order-list-container', { visible: true });
 
 
-    let tillDate = new Date();
-    tillDate.setHours(0, 0);
-    tillDate.setDate(tillDate.getDate() - numberOfDays);
 
     let result = [];
     let currentPage = 1;
+    let shouldBreak = false;
     while (true) {
         await page.waitForSelector('.order-list > section > li', { visible: true });
         const orders = await page.$$('.order-list > section > li');
         const username = record.get('USERNAME') ?? '';
-        let shouldBreak = false;
         for (const order of orders) {
             let time = await order.$eval('.info-left_time', x => x.textContent)
                 .then((t) => {
@@ -79,7 +80,7 @@ export async function getInfo(
             const data = await page.evaluate(() => {
                 let trackingId = document.querySelector('.package-detail__delivery-info > section > div > span:nth-child(2)')!.textContent;
                 const courier = document.querySelector('.package-detail__delivery-info > section > div:nth-child(2) > span:nth-child(2)')!.textContent;
-                trackingId = `TD-${trackingId}`;
+                trackingId = `TD${trackingId}`;
                 return { trackingId, courier };
             });
             order = { ...order, ...data };
@@ -97,10 +98,12 @@ export async function getInfo(
             const response = await fetch(url, options);
             const pdfBuffer = await response.arrayBuffer();
             const binaryPdf = Buffer.from(pdfBuffer);
-            await fs.writeFile(path.join(invoiceDirPath, `OD-${order.id}.pdf`), binaryPdf, 'binary');
-            order.id = `OD-${order.id}`;
+            await fs.writeFile(path.join(invoiceDirPath, `OD${order.id}.pdf`), binaryPdf, 'binary');
+            order.id = `OD${order.id}`;
             results.push(order);
-        } catch (e: any) { }
+        } catch (e: any) {
+            console.log('duplicate order possibly detected! for account:  ', order.username, 'for order id : ', order.id);
+        }
     }
     console.log('account processed!');
 }

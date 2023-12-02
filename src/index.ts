@@ -46,7 +46,7 @@ async function main() {
             const browser = await puppeteer.launch({ headless: false, args: ['--disable-notifications'], defaultViewport: null });
             const page = await browser.newPage();
             const results: any[] = [];
-            await getInfo(page, record, results, +options.numberOfdays);
+            await getInfo(page, record, results, +options.getInfo);
             await outputSheet.addRows(results);
             await record.save();
             await browser.close();
