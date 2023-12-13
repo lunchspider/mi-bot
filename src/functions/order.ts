@@ -63,6 +63,7 @@ export async function order(page: Page, record: GoogleSpreadsheetRow) {
             while (q > 1) {
                 await page.click('button[aria-label = "Increase the quantity"]');
                 q -= 1;
+                await new Promise((r) => setTimeout(r, 1000));
             }
         }
         await page.click('button[aria-label="Buy Now"]');
@@ -84,6 +85,20 @@ export async function order(page: Page, record: GoogleSpreadsheetRow) {
             throw error;
         }
         await page.waitForSelector('button[aria-label = "Check Out"]');
+        let q = await page.$eval('input.quantity-section__value', (e) => parseInt(e.value));
+        const pricePerItem = parseInt(record.get("MAX PRICE")) / parseInt(record.get('order quantity') ?? '1');
+        const totalPrice =
+            await page.evaluate(() => {
+                return parseInt(document
+                    .querySelector('.cart__footer-total > strong')!
+                    .textContent!
+                    .split(' ')[1]
+                    .replace('₹', '')
+                    .replaceAll(',', ''));
+            });
+        if (pricePerItem < totalPrice / q) {
+            throw `pricePerItem in spreadsheet : ${pricePerItem}, price in website : ${totalPrice / q}`
+        }
         await page.click('button[aria-label = "Check Out"]');
         await new Promise((r) => setTimeout(r, 3000));
         // check if there is already a address present!
