@@ -1,5 +1,6 @@
 import { GoogleSpreadsheetRow } from "google-spreadsheet";
 import { Page } from "puppeteer";
+
 export async function handleOrderInfo(page: Page, record: GoogleSpreadsheetRow) {
     await page.waitForSelector('.payment-successful', { visible: true, timeout: 300000 });
     await new Promise((r) => setTimeout(r, 1000));
@@ -12,7 +13,7 @@ export async function handleOrderInfo(page: Page, record: GoogleSpreadsheetRow) 
     });
     record.set('ORDER ID', info.orderNumber);
     record.set('PRICE', info.price);
-    record.set('QTY', 1);
+    record.set('QTY', record.get('order quantity') ?? '1');
 
     if (info.title === '' || info.title?.includes('failed')) {
         throw 'payment failed!';

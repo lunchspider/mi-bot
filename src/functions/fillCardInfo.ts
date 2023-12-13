@@ -2,7 +2,7 @@ import { GoogleSpreadsheetRow } from "google-spreadsheet";
 import { Page } from "puppeteer";
 
 export async function fillCardInfo(page: Page, record: GoogleSpreadsheetRow) {
-    await page.waitForSelector('#jusPayIframe > iframe', { visible: true });
+    await page.waitForSelector('#jusPayIframe > iframe', { visible: true, timeout: 100000 });
     let finalPrice = await page.evaluate(() => {
         return parseInt(document
             .querySelector('.card-order-detail > table > tbody > tr:nth-child(3) > td:nth-child(2)')?.innerHTML

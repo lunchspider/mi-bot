@@ -6,6 +6,7 @@ import { fillAddressInfo } from "./fillAddressInfo.js";
 import { fillGstInfo } from "./fillGstInfo.js";
 import { GoogleSpreadsheetRow } from "google-spreadsheet";
 import { Page } from "puppeteer";
+import { wait } from "./wait.js";
 
 export async function order(page: Page, record: GoogleSpreadsheetRow) {
     try {
@@ -56,6 +57,14 @@ export async function order(page: Page, record: GoogleSpreadsheetRow) {
         }
         await page.waitForSelector('button[aria-label="Buy Now"]', { visible: true });
         await new Promise((r) => setTimeout(r, 2000));
+        let qty: string | undefined = record.get('order quantity');
+        if (qty) {
+            let q = parseInt(qty);
+            while (q > 1) {
+                await page.click('button[aria-label = "Increase the quantity"]');
+                q -= 1;
+            }
+        }
         await page.click('button[aria-label="Buy Now"]');
         await new Promise((r) => setTimeout(r, 1000));
         await page.evaluate(() => {
