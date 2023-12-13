@@ -1,8 +1,10 @@
 import { GoogleSpreadsheetRow } from "google-spreadsheet";
 import { Page } from "puppeteer";
+import { wait } from "./wait.js";
 
 export async function handleOrderInfo(page: Page, record: GoogleSpreadsheetRow) {
     await page.waitForSelector('.payment-successful', { visible: true, timeout: 300000 });
+    await wait();
     await new Promise((r) => setTimeout(r, 1000));
     let info = await page.evaluate(() => {
         return {

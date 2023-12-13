@@ -57,14 +57,10 @@ export async function order(page: Page, record: GoogleSpreadsheetRow) {
         }
         await page.waitForSelector('button[aria-label="Buy Now"]', { visible: true });
         await new Promise((r) => setTimeout(r, 2000));
-        let qty: string | undefined = record.get('order quantity');
-        if (qty) {
-            let q = parseInt(qty);
-            while (q > 1) {
-                await page.click('button[aria-label = "Increase the quantity"]');
-                q -= 1;
-                await new Promise((r) => setTimeout(r, 1000));
-            }
+        let qty = parseInt(record.get('order quantity') ?? '1');
+        for (let i = 1; i < qty; i++) {
+            await page.click('button[aria-label = "Increase the quantity"]');
+            await new Promise((r) => setTimeout(r, 1000));
         }
         await page.click('button[aria-label="Buy Now"]');
         await new Promise((r) => setTimeout(r, 1000));
@@ -86,6 +82,9 @@ export async function order(page: Page, record: GoogleSpreadsheetRow) {
         }
         await page.waitForSelector('button[aria-label = "Check Out"]');
         let q = await page.$eval('input.quantity-section__value', (e) => parseInt(e.value));
+        if (qty != q) {
+            throw `cart quantity is ${q} but required quantity is ${qty}`
+        }
         const pricePerItem = parseInt(record.get("MAX PRICE")) / parseInt(record.get('order quantity') ?? '1');
         const totalPrice =
             await page.evaluate(() => {
