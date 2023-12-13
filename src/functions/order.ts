@@ -116,13 +116,17 @@ export async function order(page: Page, record: GoogleSpreadsheetRow) {
         try {
             await page.waitForNavigation({ timeout: 1000 });
         } catch (e: any) {
-            error = await page.evaluate(() => {
-                let element = document.querySelector('div[aria-label = "Modal"] > main ');
-                if (element) {
-                    return element.innerHTML;
-                }
-            });
-            console.log({ error });
+            // kill me boiz
+            try {
+                error = await page.evaluate(() => {
+                    let element = document.querySelector('div[aria-label = "Modal"] > main ');
+                    if (element) {
+                        return element.innerHTML;
+                    }
+                });
+                console.log({ error });
+            }
+            catch (e: any) { }
             if (error) {
                 throw error;
             }
