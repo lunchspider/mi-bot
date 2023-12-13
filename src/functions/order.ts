@@ -129,6 +129,7 @@ export async function order(page: Page, record: GoogleSpreadsheetRow) {
         }
         await fillCardInfo(page, record);
         await handleOrderInfo(page, record);
+        record.set('QTY', qty);
     } catch (e: any) {
         console.log(e);
         record.set('ITEM NAME', '');
